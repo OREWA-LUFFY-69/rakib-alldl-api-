@@ -1,18 +1,14 @@
 {
   "name": "rakib-alldl-api",
-  "version": "1.0.0",
-  "description": "API to download videos from various platforms like YouTube, TikTok, Facebook, etc.",
+  "version": "1.0.2",
+  "description": "Video downloader API using rakib-videos-downloader",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "axios": "^1.4.0",
-    "ytdl-core": "^4.9.1",
-    "tiktok-scraper": "^1.5.0",
-    "cheerio": "^1.0.0-rc.10",
-    "puppeteer": "^19.0.0"
+    "rakib-videos-downloader": "^0.0.4"
   },
   "author": "Rakib Adil",
   "license": "MIT"
