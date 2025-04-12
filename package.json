@@ -14,7 +14,7 @@
     "node-fetch": "^2.6.12",
     "cheerio": "^1.0.0-rc.12",
     "tiktok-scraper": "^1.4.29",
-    "fb-downloader-scrapper": "^1.0.7",
+    "fb-downloader-scrapper": "^1.0.2",
     "rakib-videos-downloader": "^0.0.4"
   },
   "author": "Rakib Adil",
