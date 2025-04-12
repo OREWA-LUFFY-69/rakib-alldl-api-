@@ -1,47 +1,40 @@
 const express = require("express");
-const rakib = require("rakib-videos-downloader");
+const axios = require("axios");
 const app = express();
 
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send(
-    "Rakib AllDL API is live! \n" +
-    "Owner: Rakib Adil \n" +
-    "devwp: wa.me/+8801811276038 \n" +
-    "This API supports downloading from Facebook, Instagram, YouTube, TikTok, CapCut, Pinterest, Twitter and more.\n" +
-    "Thank you!"
-  );
+  res.send("Rakib AllDL API is Live!, \n Owner: Rakib Adil, \n Devwp : wa.me/+8801811276038, \n ");
 });
 
+// Main route to handle video download
 app.get("/rakib", async (req, res) => {
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: "Missing URL!" });
+  if (!url) return res.status(400).json({ error: "Missing video URL!" });
 
   try {
-    console.log("Requested URL:", url);
+    // Use a third-party API to fetch video information
+    const apiUrl = `https://aiovideodl.ml/api?url=${encodeURIComponent(url)}`;
+    const response = await axios.get(apiUrl);
 
-    const data = await rakib.alldown(url);
-    console.log("Downloader Response:", data);
-
-    if (!data || !data.video) {
-      return res.status(404).json({ error: "Video not found or unsupported link.🔍" });
+    // Check if the response has valid data
+    if (response.data && response.data.medias && response.data.medias.length > 0) {
+      res.json({
+        platform: response.data.title || "Video",
+        thumbnail: response.data.thumbnail,
+        video: response.data.medias[0].url
+      });
+    } else {
+      res.status(404).json({ error: "Video not found or unsupported link." });
     }
-
-    res.json({
-      video: data.video,
-      thumbnail: data.thumbnail || null,
-      title: data.title || "Video",
-      platform: data.platform || "unknown"
-    });
-
   } catch (err) {
-    console.error("Download Error:", err.message);
-    res.status(500).json({ error: "Download failed ❌", details: err.message });
+    res.status(500).json({ error: "Failed to fetch video", details: err.message });
   }
 });
 
+// Set the port for the API to listen
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Rakib AllDL API running on port ${PORT}`);
+  console.log("Rakib AllDL API running on port", PORT);
 });
