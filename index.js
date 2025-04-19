@@ -1,84 +1,55 @@
 const express = require('express');
 const axios = require('axios');
-const ytdl = require('ytdl-core'); // For YouTube video downloading
-const TikTokScraper = require('tiktok-scraper'); // For TikTok video downloading
-const cheerio = require('cheerio'); // For scraping websites like Facebook and Instagram
-const puppeteer = require('puppeteer'); // For handling more complex page scraping (like Instagram)
+const ytdl = require('ytdl-core');
+const cheerio = require('cheerio');
+const cors = require('cors');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-// Function to handle YouTube video downloads
+app.use(cors());
+
+// YouTube Downloader
 async function downloadYouTube(url) {
-  try {
-    if (!ytdl.validateURL(url)) {
-      throw new Error('Invalid YouTube URL.');
-    }
-    const info = await ytdl.getInfo(url);
-    const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
-    return format.url;
-  } catch (err) {
-    throw new Error('Failed to download YouTube video.');
-  }
+  if (!ytdl.validateURL(url)) throw new Error('Invalid YouTube URL');
+  const info = await ytdl.getInfo(url);
+  const format = ytdl.chooseFormat(info.formats, { quality: 'highest' });
+  return format.url;
 }
 
-// Function to handle TikTok video downloads
+// TikTok Downloader via API
 async function downloadTikTok(url) {
-  try {
-    const video = await TikTokScraper.getVideoMeta(url);
-    return video.collector[0].videoUrl;
-  } catch (err) {
-    throw new Error('Failed to download TikTok video.');
-  }
+  const { data } = await axios.get(`https://tikwm.com/api/?url=${encodeURIComponent(url)}`);
+  if (data.data && data.data.play) return data.data.play;
+  throw new Error('TikTok download failed');
 }
 
-// Function to scrape Facebook video (using cheerio or puppeteer for complex cases)
+// Facebook Downloader via public API
 async function downloadFacebook(url) {
-  try {
-    // For demonstration, this is a placeholder. You need a scraping solution or service for Facebook.
-    const response = await axios.get(`https://www.fbdown.net/?url=${url}`);
-    const $ = cheerio.load(response.data);
-    const downloadUrl = $('a[href*="fbdown.net/download"]').attr('href'); // Simplified
-    return downloadUrl;
-  } catch (err) {
-    throw new Error('Failed to download Facebook video.');
-  }
+  const { data } = await axios.get(`https://fbdownloader.online/api/ajaxSearch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    data: `q=${encodeURIComponent(url)}`
+  });
+  if (data && data.links && data.links[0]) return data.links[0].url;
+  throw new Error('Facebook download failed');
 }
 
-// Function to scrape Instagram video (requires puppeteer for Instagram login and scraping)
+// Instagram Downloader via external scraper
 async function downloadInstagram(url) {
-  try {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
-    
-    const videoUrl = await page.evaluate(() => {
-      const video = document.querySelector('video');
-      return video ? video.src : null;
-    });
-    
-    await browser.close();
-    if (videoUrl) {
-      return videoUrl;
-    } else {
-      throw new Error('Could not find Instagram video.');
-    }
-  } catch (err) {
-    throw new Error('Failed to download Instagram video.');
-  }
+  const { data } = await axios.get(`https://instadownloader.co/api?url=${encodeURIComponent(url)}`);
+  if (data && data.url) return data.url;
+  throw new Error('Instagram download failed');
 }
 
-// Main route to handle video downloads
+// Main route
 app.get('/rakib', async (req, res) => {
   const { url } = req.query;
-  if (!url) {
-    return res.status(400).json({ error: 'Please provide a video URL.' });
-  }
+  if (!url) return res.status(400).json({ error: 'Provide a URL' });
 
   try {
     let downloadUrl;
 
-    // Detect platform and call the appropriate function
     if (url.includes('youtube.com') || url.includes('youtu.be')) {
       downloadUrl = await downloadYouTube(url);
     } else if (url.includes('tiktok.com')) {
@@ -88,18 +59,16 @@ app.get('/rakib', async (req, res) => {
     } else if (url.includes('instagram.com')) {
       downloadUrl = await downloadInstagram(url);
     } else {
-      return res.status(400).json({ error: 'Unsupported platform.' });
+      return res.status(400).json({ error: 'Unsupported platform' });
     }
 
-    // Return the video download URL
-    res.json({ videoUrl: downloadUrl });
+    res.json({ success: true, url: downloadUrl });
   } catch (err) {
-    console.error('Error:', err);
-    res.status(500).json({ error: 'Failed to fetch the video.', details: err.message });
+    console.error(err);
+    res.status(500).json({ error: err.message || 'Download failed' });
   }
 });
 
-// Start the server
 app.listen(PORT, () => {
-  console.log(`API is running on http://localhost:${PORT}`);
+  console.log(`Rakib Adil Video Downloader API is running at http://localhost:${PORT}`);
 });
